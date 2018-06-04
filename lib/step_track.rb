@@ -10,7 +10,7 @@ module StepTrack
     @caller ||= ->() { caller[1].sub(Dir.pwd + "/", "") }
   end
 
-  def set_caller=(&blk)
+  def set_caller(&blk)
     @caller = blk
   end
 
