@@ -23,6 +23,15 @@ describe "StepTrack" do
         "callback is no proc #{data[:callback].inspect}"
       assert data[:time] <= Time.now,
         "time #{data[:time].inspect} > #{Time.now.inspect}"
+      assert_equal data[:track_id], Thread.current.object_id,
+        "track id is #{StepTrack.track_id("test")}"
+      refute_empty data[:caller], "caller is empty"
+    end
+
+    it "stores a track_id when given" do
+      StepTrack.init("test", track_id: "moobar") { }
+      assert_equal "moobar", StepTrack.track_id("test"),
+        "track id is #{StepTrack.track_id("test")}"
     end
   end
 
@@ -90,11 +99,26 @@ describe "StepTrack" do
       assert_equal 2, result[:step_count]
     end
 
-    it "merges the last step into result" do
+    it "sets the final step name" do
       result = StepTrack.done("test")
       assert_equal "last", result[:final_step_name]
-      expected_keys = [:split, :duration, :caller]
-      assert_equal expected_keys, expected_keys & result.keys
+    end
+
+    it "sets a duration" do
+      result = StepTrack.done("test")
+      assert result[:duration].is_a?(Float), "duration is no Float"
+      assert result[:duration] > 0.0, "duration is not positive"
+      assert result[:duration] < 1.0, "duration is too long"
+    end
+
+    it "sets a caller" do
+      result = StepTrack.done("test")
+      assert_match %r{#{Regexp.escape(__FILE__)}}, result[:caller]
+    end
+
+    it "does not merge final step into results" do
+      result = StepTrack.done("test")
+      assert !result.key?(:gnu), "merged gnu into result"
     end
 
     it "merges the error into result when available" do
@@ -106,7 +130,7 @@ describe "StepTrack" do
 
     it "enumerates every step into result" do
       result = StepTrack.done("test")
-      expected_key_parts = [:split, :duration, :caller]
+      expected_key_parts = [:i, :split, :duration, :caller]
 
       ["step", "last"].each_with_index do |n, i|
         expected_keys = expected_key_parts.map { |k| "step_#{n}_#{k}".to_sym }
@@ -117,12 +141,30 @@ describe "StepTrack" do
     it "enumerate duplicated step names with index in the result" do
       StepTrack.push("test", "last", gnu: "blu")
       result = StepTrack.done("test")
-      expected_key_parts = [:split, :duration, :caller]
+      expected_key_parts = [:i, :split, :duration, :caller]
 
       ["step", "last", "last_1"].each_with_index do |n, i|
         expected_keys = expected_key_parts.map { |k| "step_#{n}_#{k}".to_sym }
         assert_equal expected_keys, expected_keys & result.keys
       end
+    end
+  end
+
+  describe ".track_id" do
+    it "raises when not initialized" do
+      assert_raises ArgumentError do
+        StepTrack.track_id("test")
+      end
+    end
+
+    it "gives nil track_id when initialized without track_id" do
+      StepTrack.init("test") {  }
+      assert_equal Thread.current.object_id, StepTrack.track_id("test")
+    end
+
+    it "gives configured track_id when initialized with track_id" do
+      StepTrack.init("test", track_id: "1234") {  }
+      assert_equal "1234", StepTrack.track_id("test")
     end
   end
 end
