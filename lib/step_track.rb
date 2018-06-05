@@ -17,7 +17,7 @@ module StepTrack
   def init(track, config={})
     raise ArgumentError, "callback block required" unless block_given?
     Thread.current[ref(track)] = {
-      track_id: config[:track_id] || Thread.current.object_id,
+      track_id: config[:track_id] || Thread.current.object_id.to_s,
       steps: [],
       callback: Proc.new,
       time: Time.now,

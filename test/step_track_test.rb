@@ -23,7 +23,7 @@ describe "StepTrack" do
         "callback is no proc #{data[:callback].inspect}"
       assert data[:time] <= Time.now,
         "time #{data[:time].inspect} > #{Time.now.inspect}"
-      assert_equal data[:track_id], Thread.current.object_id,
+      assert_equal data[:track_id], Thread.current.object_id.to_s,
         "track id is #{StepTrack.track_id("test")}"
       refute_empty data[:caller], "caller is empty"
     end
@@ -159,7 +159,7 @@ describe "StepTrack" do
 
     it "gives nil track_id when initialized without track_id" do
       StepTrack.init("test") {  }
-      assert_equal Thread.current.object_id, StepTrack.track_id("test")
+      assert_equal Thread.current.object_id.to_s, StepTrack.track_id("test")
     end
 
     it "gives configured track_id when initialized with track_id" do
