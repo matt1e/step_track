@@ -21,8 +21,8 @@ describe "StepTrack" do
         "steps is no empty array #{data[:steps].inspect}"
       assert data[:callback].is_a?(Proc),
         "callback is no proc #{data[:callback].inspect}"
-      assert data[:time] <= Time.now,
-        "time #{data[:time].inspect} > #{Time.now.inspect}"
+      assert data[:time] <= DateTime.now,
+        "time #{data[:time].inspect} > #{DateTime.now.inspect}"
       assert_equal data[:track_id], Thread.current.object_id.to_s,
         "track id is #{StepTrack.track_id("test")}"
       refute_empty data[:caller], "caller is empty"
@@ -116,6 +116,11 @@ describe "StepTrack" do
       assert_match %r{#{Regexp.escape(__FILE__)}}, result[:caller]
     end
 
+    it "sets a timestamp" do
+      result = StepTrack.done("test")
+      assert_match %r{\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}}, result[:timestamp]
+    end
+
     it "does not merge final step into results" do
       result = StepTrack.done("test")
       assert !result.key?(:gnu), "merged gnu into result"
@@ -130,7 +135,7 @@ describe "StepTrack" do
 
     it "enumerates every step into result" do
       result = StepTrack.done("test")
-      expected_key_parts = [:i, :split, :duration, :caller]
+      expected_key_parts = [:i, :split, :duration, :timestamp, :caller]
 
       ["step", "last"].each_with_index do |n, i|
         expected_keys = expected_key_parts.map { |k| "step_#{n}_#{k}".to_sym }

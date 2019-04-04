@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "date"
+
 module StepTrack
   extend self
 
@@ -20,7 +22,7 @@ module StepTrack
       track_id: config[:track_id] || Thread.current.object_id.to_s,
       steps: [],
       callback: Proc.new,
-      time: Time.now,
+      time: DateTime.now,
       caller: config&.[](:caller) || get_caller.()
     }.merge(DEFAULT_CONFIG).merge(config)
   end
@@ -31,9 +33,9 @@ module StepTrack
     merge_step = track_ref[:steps].pop if payload.delete(track_ref[:merge_key])
     last_step = track_ref[:steps].last
     track_ref[:steps] << (merge_step || {}).merge(
-      split: Time.now.to_f - (last_step&.[](:time) || track_ref[:time]).to_f,
-      duration: Time.now.to_f - track_ref[:time].to_f,
-      time: Time.now,
+      split: Time.now.to_f - (last_step&.[](:time) || track_ref[:time]).to_time.to_f,
+      duration: Time.now.to_f - track_ref[:time].to_time.to_f,
+      time: DateTime.now,
       caller: merge_step&.[](:caller) || get_caller.(),
       step_name: merge_step&.[](:step_name) || name
     ).merge(payload)
@@ -44,11 +46,12 @@ module StepTrack
     track_ref = Thread.current[ref(track)]
     Thread.current[ref(track)] = nil
     steps = track_ref.delete(:steps)
-    steps.each { |step| step.delete(:time) }
+    steps.each { |s| s[:timestamp] = s.delete(:time).iso8601 }
     result = {
       step_count: steps.count,
       caller: track_ref[:caller],
-      duration: Time.now.to_f - track_ref[:time].to_f,
+      duration: Time.now.to_f - track_ref[:time].to_time.to_f,
+      timestamp: track_ref[:time].iso8601,
       track_id: track_ref[:track_id]
     }
     if err = steps.detect { |s| s.key?(track_ref[:error_key]) }
