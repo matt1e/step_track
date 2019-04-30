@@ -61,6 +61,14 @@ describe "StepTrack" do
       assert_equal expected_keys, expected_keys & step.keys
     end
 
+    it "sets a duration" do
+      StepTrack.push("test", "step", moo: "bar")
+      step = Thread.current[StepTrack.send(:ref, "test")][:steps].first
+      assert step[:duration].is_a?(Float), "duration is no Float"
+      assert step[:duration] > 0.0, "duration is not positive"
+      assert step[:duration] < 1.0, "duration is too long"
+    end
+
     it "merges the new payload into the previous result when requested" do
       StepTrack.push("test", "step", moo: "bar")
       StepTrack.push("test", "new", blu: "gnu", merge: true)
@@ -146,7 +154,7 @@ describe "StepTrack" do
     it "enumerate duplicated step names with index in the result" do
       StepTrack.push("test", "last", gnu: "blu")
       result = StepTrack.done("test")
-      expected_key_parts = [:i, :split, :duration, :caller]
+      expected_key_parts = [:i, :split, :duration, :timestamp, :caller]
 
       ["step", "last", "last_1"].each_with_index do |n, i|
         expected_keys = expected_key_parts.map { |k| "step_#{n}_#{k}".to_sym }
